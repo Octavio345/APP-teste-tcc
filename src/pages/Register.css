@@ -1,0 +1,421 @@
+/* Register.css - Tema Rural */
+
+:root {
+  /* Paleta de Cores Rural */
+  --terra-escura: #5D4037;    /* Marrom terra - solo fértil */
+  --terra-media: #8B6B4D;     /* Marrom madeira - troncos */
+  --terra-clara: #C4A484;     /* Marrom areia - terra seca */
+  --verde-pastagem: #2E7D32;   /* Verde pasto - vegetação */
+  --verde-colheita: #4CAF50;   /* Verde folhas - plantações */
+  --verde-campo: #81C784;      /* Verde claro - campos */
+  --trigo-ouro: #FFD700;       /* Amarelo trigo - colheita */
+  --milho-dourado: #FFB74D;    /* Laranja colheita - milho */
+  --palha-seca: #FFF3E0;       /* Bege palha - feno */
+  --madeira-clara: #BCAAA4;    /* Madeira clara - cercas */
+  --madeira-escura: #6D4C41;   /* Madeira escura - troncos */
+  --branco-ovo: #FAF7F2;       /* Branco natural */
+  --cinza-pedra: #9E9E9E;      /* Cinza - pedras */
+  --ceu-claro: #90CAF9;        /* Azul céu - dia limpo */
+  --sol-poente: #FF9800;       /* Laranja - entardecer */
+}
+
+.auth-container-rural {
+  max-width: 520px;
+  margin: 2rem auto;
+  padding: 2.5rem;
+  background: var(--branco-ovo);
+  border-radius: 30px 30px 30px 5px;
+  box-shadow: 0 20px 40px rgba(93, 64, 55, 0.3);
+  border: 2px solid var(--madeira-clara);
+  position: relative;
+  font-family: 'Segoe UI', 'Roboto', system-ui, sans-serif;
+}
+
+/* Efeito de textura de madeira na borda */
+.auth-container-rural::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  right: -5px;
+  bottom: -5px;
+  background: linear-gradient(45deg, var(--madeira-escura) 0%, var(--terra-media) 100%);
+  border-radius: 35px 35px 35px 10px;
+  z-index: -1;
+  opacity: 0.3;
+}
+
+/* Efeito de textura de palha no fundo */
+.auth-container-rural::after {
+  content: "🌾🌱🌽";
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  font-size: 3rem;
+  opacity: 0.1;
+  transform: rotate(-10deg);
+  pointer-events: none;
+}
+
+.auth-title-rural {
+  text-align: center;
+  color: var(--terra-escura);
+  font-size: 2.2rem;
+  margin-bottom: 1.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 2px 2px 0 var(--palha-seca);
+  border-bottom: 3px solid var(--verde-pastagem);
+  padding-bottom: 0.5rem;
+  position: relative;
+}
+
+.auth-title-rural::before {
+  content: "🚜";
+  font-size: 2rem;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: -30px;
+  background: var(--branco-ovo);
+  padding: 0 10px;
+}
+
+.auth-title-rural::after {
+  content: "🌻";
+  font-size: 1.8rem;
+  position: absolute;
+  right: 0;
+  top: -10px;
+  opacity: 0.8;
+}
+
+.input-group-rural {
+  margin-bottom: 1.5rem;
+  position: relative;
+  animation: crescerPlanta 0.5s ease-out;
+}
+
+.input-group-rural label {
+  display: block;
+  color: var(--terra-escura);
+  margin-bottom: 0.3rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.5px;
+  padding-left: 5px;
+}
+
+.input-group-rural label::before {
+  content: "🌱";
+  margin-right: 5px;
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+
+.input-group-rural input,
+.input-group-rural select {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid var(--madeira-clara);
+  border-radius: 15px 15px 15px 5px;
+  background: white;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  box-shadow: inset 0 2px 5px rgba(93, 64, 55, 0.1);
+  color: var(--terra-escura);
+}
+
+.input-group-rural input:focus,
+.input-group-rural select:focus {
+  outline: none;
+  border-color: var(--verde-colheita);
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2), inset 0 2px 5px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
+
+.input-group-rural input:hover,
+.input-group-rural select:hover {
+  border-color: var(--verde-pastagem);
+  background: var(--palha-seca);
+}
+
+.input-group-rural input::placeholder {
+  color: var(--cinza-pedra);
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+/* Estilo específico para o select */
+.input-group-rural select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236D4C41' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1.2em;
+  background-color: white;
+}
+
+/* Campo de CPF/CNPJ com destaque */
+.input-group-rural:has(input[name="document"]) {
+  animation: brotar 0.4s ease-out;
+  border-left: 4px solid var(--milho-dourado);
+  padding-left: 10px;
+  margin-left: -10px;
+}
+
+/* Botão principal */
+.submit-btn-rural {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(135deg, var(--verde-pastagem) 0%, var(--verde-colheita) 100%);
+  color: white;
+  border: none;
+  border-radius: 50px 50px 50px 10px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 0 var(--terra-escura), 0 10px 20px rgba(0,0,0,0.2);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  position: relative;
+  overflow: hidden;
+  margin-top: 1.5rem;
+  border-bottom: 3px solid var(--terra-media);
+}
+
+.submit-btn-rural::before {
+  content: "🌾";
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.3rem;
+  opacity: 0.8;
+}
+
+.submit-btn-rural::after {
+  content: "🚜";
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.3rem;
+  opacity: 0.8;
+}
+
+.submit-btn-rural:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 0 var(--terra-escura), 0 15px 25px rgba(0,0,0,0.3);
+  background: linear-gradient(135deg, var(--verde-colheita) 0%, var(--verde-pastagem) 100%);
+}
+
+.submit-btn-rural:active {
+  transform: translateY(4px);
+  box-shadow: 0 4px 0 var(--terra-escura), 0 8px 15px rgba(0,0,0,0.2);
+}
+
+.submit-btn-rural:disabled {
+  opacity: 0.7;
+  transform: translateY(4px);
+  box-shadow: 0 4px 0 var(--terra-escura);
+  cursor: not-allowed;
+}
+
+/* Alertas com tema rural */
+.alert-message-rural {
+  padding: 1rem;
+  border-radius: 10px 10px 10px 30px;
+  margin: 1rem 0;
+  font-weight: 600;
+  text-align: center;
+  animation: balancar 0.3s ease-out;
+  border-left: 8px solid;
+  position: relative;
+}
+
+.alert-message-rural::before {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.2rem;
+}
+
+.alert-message-rural.success {
+  background: var(--verde-campo);
+  color: var(--terra-escura);
+  border-left-color: var(--verde-pastagem);
+}
+
+.alert-message-rural.success::before {
+  content: "🌽";
+}
+
+.alert-message-rural.error {
+  background: #FFCDD2;
+  color: #B71C1C;
+  border-left-color: #D32F2F;
+}
+
+.alert-message-rural.error::before {
+  content: "🌧️";
+}
+
+/* Decorações rurais */
+.campo-decoration {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1.5rem;
+  padding: 0 10px;
+  color: var(--terra-media);
+  font-size: 1.5rem;
+  opacity: 0.6;
+  border-top: 2px dashed var(--madeira-clara);
+  padding-top: 1rem;
+}
+
+.campo-decoration span {
+  animation: flutuar 3s ease-in-out infinite;
+}
+
+.campo-decoration span:nth-child(2) {
+  animation-delay: 0.5s;
+}
+
+.campo-decoration span:nth-child(3) {
+  animation-delay: 1s;
+}
+
+/* Loading state especial */
+.loading-spinner-rural {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid var(--palha-seca);
+  border-radius: 50%;
+  border-top-color: var(--verde-pastagem);
+  animation: girar 1s linear infinite;
+  margin-right: 10px;
+}
+
+/* Efeito de máquina de escrever para placeholders */
+@keyframes escrever {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+/*animações*/
+@keyframes crescerPlanta {
+  0% {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes brotar {
+  0% {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes balancar {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(2deg);
+  }
+  75% {
+    transform: rotate(-2deg);
+  }
+}
+
+@keyframes flutuar {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes girar {
+  to { transform: rotate(360deg); }
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .auth-container-rural {
+    margin: 1rem;
+    padding: 1.5rem;
+  }
+  
+  .auth-title-rural {
+    font-size: 1.8rem;
+  }
+  
+  .auth-title-rural::before {
+    font-size: 1.5rem;
+    top: -25px;
+  }
+  
+  .submit-btn-rural {
+    font-size: 1rem;
+    padding: 14px;
+  }
+  
+  .submit-btn-rural::before,
+  .submit-btn-rural::after {
+    font-size: 1rem;
+  }
+}
+
+/* Efeito de foco especial para campos rurais */
+.input-group-rural:focus-within {
+  animation: balancar 0.3s ease-out;
+}
+
+.input-group-rural:focus-within label {
+  color: var(--verde-pastagem);
+}
+
+.input-group-rural:focus-within label::before {
+  content: "🌿";
+}
+
+/* Estilo para campo de número (hectares) */
+.input-group-rural input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.input-group-rural input[type="number"]::-webkit-inner-spin-button,
+.input-group-rural input[type="number"]::-webkit-outer-spin-button {
+  opacity: 0.5;
+  background: var(--verde-campo);
+  cursor: pointer;
+}
+
+/* Efeito sazonal - muda cor conforme estação do ano (opcional) */
+@media (prefers-color-scheme: light) {
+  .auth-container-rural {
+    background: var(--palha-seca);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .auth-container-rural {
+    background: var(--terra-clara);
+  }
+}
