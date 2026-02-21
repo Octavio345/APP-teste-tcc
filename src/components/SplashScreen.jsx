@@ -48,13 +48,13 @@ export default function SplashScreen({ onComplete }) {
   
   const timeoutsRef = useRef([])
   
-  // Plantas com alturas variadas
+  // Plantas com alturas variadas - REDUZIDO para melhor performance no mobile
   const plantData = useRef(
-    Array(45).fill(0).map((_, i) => ({
+    Array(25).fill(0).map((_, i) => ({  // Reduzido de 45 para 25 plantas
       id: i,
-      left: (i * 2.2) + (Math.random() * 1.8),
-      height: 100 + Math.random() * 140,
-      delay: 0.1 + (Math.random() * 1.5), // Delay mais curto para ver crescimento
+      left: (i * 4) + (Math.random() * 3), // Ajustado espaçamento
+      height: 80 + Math.random() * 100, // Altura reduzida
+      delay: 0.1 + (Math.random() * 1.5),
       type: Math.floor(Math.random() * 3),
     }))
   ).current
@@ -79,7 +79,7 @@ export default function SplashScreen({ onComplete }) {
       
       let pos = 0
       const droneInterval = setInterval(() => {
-        pos += 1.2
+        pos += 0.6  // Reduzido de 1.2 para 0.6 - drone mais devagar
         if (pos <= 100) {
           setDronePos(pos)
         } else {
@@ -94,7 +94,7 @@ export default function SplashScreen({ onComplete }) {
     setSafeTimeout(() => {
       let progressValue = 0
       const progressInterval = setInterval(() => {
-        progressValue += 1.1
+        progressValue += 0.9  // Reduzido de 1.1 para 0.9 - progresso mais lento
         
         if (progressValue < 20) setLoadingMessage("INICIANDO SCAN...")
         else if (progressValue < 40) setLoadingMessage("MAPEANDO TERRENO...")
