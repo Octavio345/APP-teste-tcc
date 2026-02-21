@@ -1,502 +1,300 @@
-import { useEffect, useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+// SplashScreen.jsx - Versão com foco na animação de crescimento das plantas
+import { useEffect, useState, useRef, memo } from "react"
 import "./SplashScreen.css"
 
+// Componente de planta com animação de crescimento SUPER VISÍVEL
+const Plant = memo(({ plant, stage }) => {
+  const { id, left, height, delay, type } = plant
+  
+  return (
+    <div
+      className={`plant type-${type} ${stage >= 2 ? 'grow' : ''}`}
+      style={{
+        left: `${left}%`,
+        '--plant-height': `${height}px`,
+        '--plant-delay': `${delay}s`,
+      }}
+    >
+      {/* Caule com animação de crescimento bem visível */}
+      <div className="stem">
+        <div className="stem-base"></div>
+        <div className="stem-grow-line"></div>
+        <div className="stem-glow"></div>
+      </div>
+      
+      {/* Folhas - aparecem gradualmente */}
+      <div className="leaves">
+        <div className="leaf left"></div>
+        <div className="leaf right"></div>
+        <div className="leaf top"></div>
+      </div>
+      
+      {/* Fruto - aparece no final */}
+      <div className="fruit"></div>
+      
+      {/* Marcadores de crescimento (visíveis durante a animação) */}
+      <div className="growth-marker" style={{ bottom: '25%' }}></div>
+      <div className="growth-marker" style={{ bottom: '50%' }}></div>
+      <div className="growth-marker" style={{ bottom: '75%' }}></div>
+    </div>
+  )
+})
+
 export default function SplashScreen({ onComplete }) {
-  const [stage, setStage] = useState(0)
+  const [stage, setStage] = useState(0) // 0: inicio, 1: terra, 2: plantas crescendo, 3: drone, 4: scan, 5: fim
   const [progress, setProgress] = useState(0)
-  const [showScan, setShowScan] = useState(false)
+  const [dronePos, setDronePos] = useState(0)
+  const [loadingMessage, setLoadingMessage] = useState("INICIANDO SCAN...")
+  
+  const timeoutsRef = useRef([])
+  
+  // Plantas com alturas variadas
+  const plantData = useRef(
+    Array(45).fill(0).map((_, i) => ({
+      id: i,
+      left: (i * 2.2) + (Math.random() * 1.8),
+      height: 100 + Math.random() * 140,
+      delay: 0.1 + (Math.random() * 1.5), // Delay mais curto para ver crescimento
+      type: Math.floor(Math.random() * 3),
+    }))
+  ).current
 
   useEffect(() => {
-    const sequence = async () => {
-      // Terra aparece
-      await new Promise(r => setTimeout(r, 1500))
-      setStage(1)
-      
-      // Plantas crescem
-      await new Promise(r => setTimeout(r, 4000))
-      setStage(2)
-      
-      // Drone entra e vai até o centro
-      await new Promise(r => setTimeout(r, 6000))
-      setStage(3)
-      
-      // Scan começa
-      setShowScan(true)
-      
-      // Progresso mais fluido e suave
-      for (let i = 0; i <= 100; i++) {
-        await new Promise(r => setTimeout(r, 50))
-        setProgress(i)
-      }
-      
-      // Pequena pausa para mostrar 100%
-      await new Promise(r => setTimeout(r, 1500))
-      
-      // Drone vai embora
-      setStage(4)
-      
-      // Transição suave para sair
-      await new Promise(r => setTimeout(r, 3000))
-      
-      // Fade out suave antes de completar
-      onComplete()
-    }
+    const timeouts = []
     
-    sequence()
+    const setSafeTimeout = (fn, delay) => {
+      const id = setTimeout(fn, delay)
+      timeouts.push(id)
+      timeoutsRef.current.push(id)
+      return id
+    }
+
+    // SEQUÊNCIA COM TEMPO PARA VER O CRESCIMENTO
+    setSafeTimeout(() => setStage(1), 200) // Terra
+    
+    setSafeTimeout(() => setStage(2), 1500) // Plantas começam a crescer
+    
+    setSafeTimeout(() => {
+      setStage(3) // Drone começa a entrar
+      
+      let pos = 0
+      const droneInterval = setInterval(() => {
+        pos += 1.2
+        if (pos <= 100) {
+          setDronePos(pos)
+        } else {
+          clearInterval(droneInterval)
+          setSafeTimeout(() => setStage(4), 500)
+        }
+      }, 25)
+      
+      timeouts.push({ cleanup: () => clearInterval(droneInterval) })
+    }, 5500) // Tempo generoso para ver as plantas crescerem
+    
+    setSafeTimeout(() => {
+      let progressValue = 0
+      const progressInterval = setInterval(() => {
+        progressValue += 1.1
+        
+        if (progressValue < 20) setLoadingMessage("INICIANDO SCAN...")
+        else if (progressValue < 40) setLoadingMessage("MAPEANDO TERRENO...")
+        else if (progressValue < 60) setLoadingMessage("DETECTANDO CULTIVOS...")
+        else if (progressValue < 80) setLoadingMessage("PROCESSANDO DADOS...")
+        else if (progressValue < 100) setLoadingMessage("GERANDO RELATÓRIO...")
+        else setLoadingMessage("SCAN COMPLETO!")
+        
+        setProgress(progressValue)
+        
+        if (progressValue >= 100) {
+          clearInterval(progressInterval)
+          setSafeTimeout(() => setStage(5), 1500)
+          setSafeTimeout(onComplete, 3000)
+        }
+      }, 50)
+      
+      timeouts.push({ cleanup: () => clearInterval(progressInterval) })
+    }, 7500)
+
+    return () => {
+      timeouts.forEach(t => {
+        if (t.cleanup) t.cleanup()
+        else clearTimeout(t)
+      })
+    }
   }, [onComplete])
 
-  const plants = Array(60).fill(0).map((_, i) => ({
-    id: i,
-    left: i * 1.7 + Math.random() * 2,
-    delay: Math.random() * 2.5,
-    height: Math.random() * 100 + 140,
-  }))
+  // Animação do drone (mantida igual)
+  const getDroneStyle = () => {
+    if (stage < 3) return { x: -45, y: 25, scale: 0.3, opacity: 0 }
+    
+    if (stage === 3) {
+      const t = dronePos / 100
+      const easeOut = 1 - Math.pow(1 - t, 1.8)
+      
+      return {
+        x: -45 + (easeOut * 45),
+        y: 25 - (easeOut * 28),
+        scale: 0.3 + (easeOut * 0.7),
+        opacity: 0.2 + (easeOut * 0.8),
+      }
+    }
+    
+    if (stage === 4) {
+      return {
+        x: 0,
+        y: -2 + Math.sin(Date.now() * 0.003) * 1.2,
+        scale: 1,
+        opacity: 1,
+      }
+    }
+    
+    return { x: 50, y: -20, scale: 0.5, opacity: 0 }
+  }
+
+  const droneStyle = getDroneStyle()
 
   return (
-    <motion.div 
-      className="splash-cinematic"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 2, ease: "easeInOut" }}
-    >
+    <div className="splash">
       {/* Fundo */}
-      <div className="cinematic-bg">
-        <div className="bg-gradient"></div>
+      <div className="bg">
+        <div className="bg-sky"></div>
+        <div className="bg-horizon"></div>
         <div className="bg-vignette"></div>
       </div>
 
       {/* TERRA */}
-      <motion.div 
-        className="ground-premium"
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        transition={{ duration: 2, ease: [0.65, 0, 0.35, 1] }}
-      >
-        <div className="soil-premium"></div>
-        <div className="soil-detail"></div>
-      </motion.div>
+      <div className={`ground ${stage >= 1 ? 'ground-visible' : ''}`}>
+        <div className="soil">
+          <div className="soil-base"></div>
+          <div className="soil-texture"></div>
+          <div className="soil-highlight"></div>
+        </div>
+      </div>
 
-      {/* PLANTAÇÃO - SUAVE E CALMA DURANTE O SCAN */}
-      <div className="plantation-cinematic">
-        {plants.map((plant) => (
-          <motion.div
-            key={plant.id}
-            className="plant-cinematic"
-            style={{
-              left: `${plant.left}%`,
-              bottom: '0',
-            }}
-            initial={{ height: 0, opacity: 0 }}
-            animate={stage >= 1 ? { 
-              height: plant.height, 
-              opacity: 1 
-            } : {}}
-            transition={{ 
-              duration: 4, 
-              delay: plant.delay,
-              ease: [0.25, 0.1, 0.25, 1]
-            }}
-          >
-            <div className="stem-cinematic"></div>
-            <div className="leaf-cinematic left"></div>
-            <div className="leaf-cinematic right"></div>
-            <div className="grain-cinematic"></div>
-            
-            {/* Efeito de brisa suave durante o scan */}
-            {stage === 3 && (
-              <motion.div
-                className="wind-effect"
-                animate={{
-                  rotate: [0, 1, -1, 0],
-                }}
-                transition={{
-                  duration: 8,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  pointerEvents: 'none'
-                }}
-              />
-            )}
-          </motion.div>
+      {/* PLANTAÇÃO - COM CRESCIMENTO BEM VISÍVEL */}
+      <div className="plantation">
+        {plantData.map((plant) => (
+          <Plant key={plant.id} plant={plant} stage={stage} />
         ))}
       </div>
 
-      {/* DRONE - SUAVE */}
-      <AnimatePresence mode="wait">
-        {stage >= 2 && stage <= 4 && (
-          <motion.div 
-            className="drone-container"
-            style={{
-              position: 'absolute',
-              left: 0,
-              top: 0,
-              width: '100%',
-              height: '100%',
-              pointerEvents: 'none',
-              zIndex: 50
-            }}
-          >
-            <motion.div 
-              className="drone-cinematic design3"
-              initial={{ opacity: 0, scale: 0.3, x: "-30vw", y: "40vh" }}
-              animate={{
-                x: stage === 2 ? [
-                  "-30vw", 
-                  "10vw",  
-                  "30vw",  
-                  "45vw",  
-                  "50vw"   
-                ] : stage === 3 ? "50vw" : [
-                  "50vw",  
-                  "65vw",  
-                  "85vw",  
-                  "120vw"  
-                ],
-                y: stage === 2 ? [
-                  "40vh",
-                  "39vh",
-                  "38.5vh",
-                  "38vh",
-                  "38vh"
-                ] : stage === 3 ? "38vh" : [
-                  "38vh",
-                  "38vh",
-                  "37vh",
-                  "36vh"
-                ],
-                opacity: stage === 2 ? [0, 0.4, 0.8, 1, 1] : 
-                         stage === 3 ? 1 : 
-                         [1, 1, 0.8, 0],
-                scale: stage === 2 ? [0.3, 0.6, 0.8, 0.9, 0.9] :
-                       stage === 3 ? 0.9 :
-                       [0.9, 0.9, 0.7, 0.4]
-              }}
-              transition={
-                stage === 2 ? {
-                  duration: 8,
-                  times: [0, 0.3, 0.6, 0.9, 1],
-                  ease: [0.43, 0.13, 0.23, 0.96]
-                } : stage === 3 ? {
-                  duration: 1,
-                  ease: "easeOut"
-                } : {
-                  duration: 6,
-                  times: [0, 0.3, 0.7, 1],
-                  ease: [0.55, 0.085, 0.68, 0.53]
-                }
-              }
-            >
-              <DroneDesign3 />
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* SCAN EFFECT - SUAVE */}
-      {showScan && stage === 3 && (
-        <motion.div 
-          className="scan-effect"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 1.5, ease: "easeInOut" }}
+      {/* DRONE */}
+      {stage >= 3 && (
+        <div 
+          className="drone-wrapper"
+          style={{
+            transform: `translate(calc(-50% + ${droneStyle.x}vw), calc(-50% + ${droneStyle.y}vh)) scale(${droneStyle.scale})`,
+            opacity: droneStyle.opacity,
+          }}
         >
-          <motion.div 
-            className="scan-grid"
-            animate={{ opacity: [0.3, 0.5, 0.3] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-          />
-          <motion.div 
-            className="scan-line"
-            animate={{
-              top: ["0%", "100%", "0%"]
-            }}
-            transition={{
-              duration: 6,
-              repeat: Infinity,
-              ease: "linear"
-            }}
-          />
-          
-          {/* CONTEÚDO EMBAIXO */}
-          <div className="scan-content-bottom">
-            {/* TEXTO PRINCIPAL */}
-            <motion.div 
-              className="scan-text"
-              animate={{
-                opacity: [0.8, 1, 0.8],
-              }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            >
-              SCANEANDO PLANTAÇÃO • 4K • IA
-            </motion.div>
+          <DronePremium hovering={stage === 4} />
+        </div>
+      )}
 
-            {/* BARRA DE PROGRESSO */}
-            <motion.div 
-              className="progress-container"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 1, delay: 0.5 }}
-            >
-              <div className="progress-bar-bg">
-                <motion.div 
-                  className="progress-bar-fill"
-                  initial={{ width: "0%" }}
-                  animate={{ width: `${progress}%` }}
-                  transition={{ duration: 0.3, ease: "easeOut" }}
-                />
+      {/* SCAN */}
+      {stage === 4 && (
+        <div className="loading-screen">
+          <div className="scan-overlay">
+            <div className="scan-grid"></div>
+            <div className="scan-lines"></div>
+          </div>
+          
+          <div className="loading-card">
+            <div className="loading-header">
+              <div className="loading-icon">⟡</div>
+              <div className="loading-title">
+                <span className="loading-main">SCAN</span>
+                <span className="loading-sub">AGRÍCOLA</span>
+              </div>
+            </div>
+            
+            <div className="progress-main">
+              <div className="progress-bar-container">
+                <div className="progress-bar-bg"></div>
+                <div 
+                  className="progress-bar-fill" 
+                  style={{ width: `${progress}%` }}
+                >
+                  <div className="progress-glow"></div>
+                </div>
               </div>
               
-              {/* PERCENTUAL */}
-              <motion.div 
-                className="progress-percentage"
-                animate={{ 
-                  scale: progress === 100 ? [1, 1.2, 1] : 1,
-                }}
-                transition={{ duration: 0.8 }}
-              >
-                {progress}%
-              </motion.div>
-            </motion.div>
-
-            {/* STATUS */}
-            <motion.div 
-              className="scan-status"
-              animate={{ opacity: [0.6, 1, 0.6] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            >
-              {progress === 100 ? "▸ SCAN CONCLUÍDO! ◂" : "▸ PROCESSANDO DADOS AGRÍCOLAS ◂"}
-            </motion.div>
+              <div className="progress-stats">
+                <span className="progress-percentage">{Math.floor(progress)}%</span>
+                <span className="progress-message">{loadingMessage}</span>
+              </div>
+            </div>
+            
+            <div className="loading-metrics">
+              <div className="metric">
+                <span className="metric-label">ÁREA</span>
+                <span className="metric-value">{(progress * 0.24).toFixed(1)} ha</span>
+              </div>
+              <div className="metric">
+                <span className="metric-label">PLANTAS</span>
+                <span className="metric-value">{Math.floor(progress * 0.9)}</span>
+              </div>
+              <div className="metric">
+                <span className="metric-label">QUALIDADE</span>
+                <span className="metric-value">98%</span>
+              </div>
+            </div>
           </div>
-        </motion.div>
+        </div>
       )}
 
-      {/* TELA DE 100% - SUAVE */}
-      {progress === 100 && stage === 3 && (
-        <motion.div 
-          className="completion-overlay"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1.2 }}
-        >
-          <motion.div 
-            className="completion-message"
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ 
-              duration: 0.8, 
-              ease: [0.34, 1.56, 0.64, 1],
-              delay: 0.2 
-            }}
-          >
-            <motion.div 
-              className="check-icon"
-              animate={{ 
-                scale: [1, 1.1, 1],
-              }}
-              transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
-            >
-              ✓
-            </motion.div>
-            <motion.div 
-              className="completion-text"
-              animate={{ opacity: [0.8, 1, 0.8] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            >
-              SCAN COMPLETO!
-            </motion.div>
-            <motion.div 
-              className="completion-subtext"
-              animate={{ opacity: [0.5, 0.8, 0.5] }}
-              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-            >
-              100% processado
-            </motion.div>
-          </motion.div>
-        </motion.div>
+      {/* COMPLETION */}
+      {progress === 100 && stage === 4 && (
+        <div className="completion-screen">
+          <div className="completion-circle">
+            <div className="completion-check">✓</div>
+          </div>
+          <div className="completion-text">
+            <div className="completion-main">SCAN COMPLETO</div>
+            <div className="completion-sub">Iniciando aplicativo...</div>
+          </div>
+        </div>
       )}
 
-      {/* TEXTOS SUPERIORES */}
-      {stage >= 2 && (
-        <motion.div 
-          className="top-texts"
-          initial={{ opacity: 0, y: -30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.5, delay: 2.5, ease: "easeOut" }}
-        >
-          {/* TÍTULO */}
-          <motion.div 
-            className="top-title"
-            animate={{ 
-              textShadow: [
-                "0 0 20px #00ff00, 0 0 40px #00aa00",
-                "0 0 25px #00ff00, 0 0 50px #00ff00",
-                "0 0 20px #00ff00, 0 0 40px #00aa00"
-              ]
-            }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-          >
-            AGRO<span>TECH</span> 4K
-          </motion.div>
-
-          {/* TIMESTAMP */}
-          <motion.div 
-            className="top-timestamp"
-            animate={{ opacity: [0.4, 0.7, 0.4] }}
-            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-          >
-            {new Date().toLocaleDateString('pt-BR')} • {new Date().toLocaleTimeString('pt-BR')}
-          </motion.div>
-        </motion.div>
-      )}
-
-      {/* FADE OUT SUAVE NO FINAL */}
-      {stage === 4 && (
-        <motion.div 
-          className="fade-out"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 2 }}
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background: 'rgba(0,0,0,0.8)',
-            zIndex: 200,
-            pointerEvents: 'none'
-          }}
-        />
-      )}
-    </motion.div>
+      {/* FADE OUT */}
+      {stage === 5 && <div className="fade-out"></div>}
+    </div>
   )
 }
 
-/* ===== DESIGN 3: HEXACÓPTERO AGRO ===== */
-function DroneDesign3() {
+// DronePremium (igual ao anterior, mantido)
+function DronePremium({ hovering }) {
   return (
-    <div className="drone-design3-final">
+    <div className={`drone-premium ${hovering ? 'drone-hover' : ''}`}>
       {/* CORPO CENTRAL */}
-      <div className="drone-body-central">
-        <div className="hex-main"></div>
-        <div className="hex-inner"></div>
-        <div className="hex-brand">
-          <span>AGRO</span>
-          <span>TECH</span>
-        </div>
+      <div className="drone-core">
+        <div className="core-hex primary"></div>
+        <div className="core-hex secondary"></div>
+        <div className="core-hex inner"></div>
+        <div className="core-logo">AGRO <br />TECH</div>
       </div>
 
       {/* BRAÇOS */}
-      <div className="drone-arm-container pos-0">
-        <div className="arm-bar"></div>
-        <div className="motor-container">
-          <motion.div 
-            className="prop-rotor"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 0.4, repeat: Infinity, ease: "linear" }}
-          >
-            <div className="prop-pa" style={{ transform: 'rotate(0deg)' }}></div>
-            <div className="prop-pa" style={{ transform: 'rotate(120deg)' }}></div>
-            <div className="prop-pa" style={{ transform: 'rotate(240deg)' }}></div>
-          </motion.div>
+      {[0, 60, 120, 180, 240, 300].map((angle) => (
+        <div key={angle} className="drone-arm" style={{ transform: `rotate(${angle}deg)` }}>
+          <div className="arm-bar"></div>
+          <div className="motor-unit">
+            <div className="motor-base"></div>
+            <div className="propeller-assembly">
+              <div className="blade-set">
+                <div className="blade blade-1"></div>
+                <div className="blade blade-2"></div>
+                <div className="blade blade-3"></div>
+              </div>
+              <div className="propeller-hub"></div>
+            </div>
+          </div>
         </div>
-      </div>
+      ))}
 
-      <div className="drone-arm-container pos-60">
-        <div className="arm-bar"></div>
-        <div className="motor-container">
-          <motion.div 
-            className="prop-rotor"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 0.4, repeat: Infinity, ease: "linear" }}
-          >
-            <div className="prop-pa" style={{ transform: 'rotate(0deg)' }}></div>
-            <div className="prop-pa" style={{ transform: 'rotate(120deg)' }}></div>
-            <div className="prop-pa" style={{ transform: 'rotate(240deg)' }}></div>
-          </motion.div>
-        </div>
-      </div>
-
-      <div className="drone-arm-container pos-120">
-        <div className="arm-bar"></div>
-        <div className="motor-container">
-          <motion.div 
-            className="prop-rotor"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 0.4, repeat: Infinity, ease: "linear" }}
-          >
-            <div className="prop-pa" style={{ transform: 'rotate(0deg)' }}></div>
-            <div className="prop-pa" style={{ transform: 'rotate(120deg)' }}></div>
-            <div className="prop-pa" style={{ transform: 'rotate(240deg)' }}></div>
-          </motion.div>
-        </div>
-      </div>
-
-      <div className="drone-arm-container pos-180">
-        <div className="arm-bar"></div>
-        <div className="motor-container">
-          <motion.div 
-            className="prop-rotor"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 0.4, repeat: Infinity, ease: "linear" }}
-          >
-            <div className="prop-pa" style={{ transform: 'rotate(0deg)' }}></div>
-            <div className="prop-pa" style={{ transform: 'rotate(120deg)' }}></div>
-            <div className="prop-pa" style={{ transform: 'rotate(240deg)' }}></div>
-          </motion.div>
-        </div>
-      </div>
-
-      <div className="drone-arm-container pos-240">
-        <div className="arm-bar"></div>
-        <div className="motor-container">
-          <motion.div 
-            className="prop-rotor"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 0.4, repeat: Infinity, ease: "linear" }}
-          >
-            <div className="prop-pa" style={{ transform: 'rotate(0deg)' }}></div>
-            <div className="prop-pa" style={{ transform: 'rotate(120deg)' }}></div>
-            <div className="prop-pa" style={{ transform: 'rotate(240deg)' }}></div>
-          </motion.div>
-        </div>
-      </div>
-
-      <div className="drone-arm-container pos-300">
-        <div className="arm-bar"></div>
-        <div className="motor-container">
-          <motion.div 
-            className="prop-rotor"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 0.4, repeat: Infinity, ease: "linear" }}
-          >
-            <div className="prop-pa" style={{ transform: 'rotate(0deg)' }}></div>
-            <div className="prop-pa" style={{ transform: 'rotate(120deg)' }}></div>
-            <div className="prop-pa" style={{ transform: 'rotate(240deg)' }}></div>
-          </motion.div>
-        </div>
-      </div>
-
-      {/* ACESSÓRIOS */}
-      <div className="camera-unit-bottom"></div>
-      <div className="lidar-unit-top">
-        <motion.div 
-          className="lidar-scanner"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-        >
-          <div className="lidar-beam"></div>
-        </motion.div>
-      </div>
-      <div className="gps-module"></div>
+      {/* SENSORES */}
+      <div className="sensor-package camera"></div>
+      <div className="sensor-package lidar"></div>
     </div>
   )
 }
