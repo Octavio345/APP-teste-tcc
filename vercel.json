@@ -1,11 +1,19 @@
 {
-  "version": 2,
-  "builds": [
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm install",
+  "routes": [
     {
-      "src": "index.html",
-      "use": "@vercel/static"
+      "src": "/assets/(.*)",
+      "dest": "/assets/$1"
+    },
+    {
+      "src": "/vite-pwa/(.*)",
+      "dest": "/vite-pwa/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
-  ],
-  "buildCommand": null,
-  "installCommand": null
+  ]
 }

@@ -13,7 +13,17 @@ export default defineConfig({
         theme_color: '#1B5E20',
         background_color: '#ffffff',
         display: 'standalone'
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}']
       }
     })
-  ]
+  ],
+  base: './', // CRUCIAL para o Vercel
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    emptyOutDir: true,
+    sourcemap: false
+  }
 })
