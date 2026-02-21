@@ -10,15 +10,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@react-three/drei": "^10.7.7",
-    "@react-three/fiber": "^9.5.0",
     "firebase": "^10.x.x",
     "framer-motion": "^12.34.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-intersection-observer": "^10.0.3",
     "react-router-dom": "^6.x.x",
-    "three": "^0.183.1",
     "vite-plugin-pwa": "^1.2.0"
   },
   "devDependencies": {
