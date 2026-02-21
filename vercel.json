@@ -1,6 +1,4 @@
 {
-  "buildCommand": "npx vite build",
-  "installCommand": "npm install --no-audit --no-fund --force",
-  "outputDirectory": "dist",
-  "framework": "vite"
+  "buildCommand": "vite build",
+  "installCommand": "npm install"
 }
