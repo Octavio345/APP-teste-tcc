@@ -41,23 +41,48 @@ const Plant = memo(({ plant, stage }) => {
 })
 
 export default function SplashScreen({ onComplete }) {
-  const [stage, setStage] = useState(0) // 0: inicio, 1: terra, 2: plantas crescendo, 3: drone, 4: scan, 5: fim
+  const [stage, setStage] = useState(0)
   const [progress, setProgress] = useState(0)
   const [dronePos, setDronePos] = useState(0)
   const [loadingMessage, setLoadingMessage] = useState("INICIANDO SCAN...")
+  const [isMobile, setIsMobile] = useState(false) // Começa como false para SSR
   
   const timeoutsRef = useRef([])
   
-  // Plantas com alturas variadas - REDUZIDO para melhor performance no mobile
-  const plantData = useRef(
-    Array(25).fill(0).map((_, i) => ({  // Reduzido de 45 para 25 plantas
-      id: i,
-      left: (i * 4) + (Math.random() * 3), // Ajustado espaçamento
-      height: 80 + Math.random() * 100, // Altura reduzida
-      delay: 0.1 + (Math.random() * 1.5),
-      type: Math.floor(Math.random() * 3),
-    }))
-  ).current
+  // Detectar mobile apenas no cliente
+  useEffect(() => {
+    setIsMobile(window.innerWidth <= 768)
+  }, [])
+  
+  // Plantas - criar apenas no cliente também
+  const [plantData, setPlantData] = useState([])
+  
+  useEffect(() => {
+    // Só criar as plantas no cliente
+    if (isMobile) {
+      // Mobile: poucas plantas e mais baixas
+      setPlantData(
+        Array(12).fill(0).map((_, i) => ({  // Reduzido para 12
+          id: i,
+          left: (i * 8) + (Math.random() * 5), // Mais espaçadas
+          height: 40 + Math.random() * 50, // Altura bem reduzida
+          delay: 0.1 + (Math.random() * 1.5),
+          type: Math.floor(Math.random() * 3),
+        }))
+      )
+    } else {
+      // Desktop: configuração normal
+      setPlantData(
+        Array(25).fill(0).map((_, i) => ({
+          id: i,
+          left: (i * 4) + (Math.random() * 3),
+          height: 80 + Math.random() * 100,
+          delay: 0.1 + (Math.random() * 1.5),
+          type: Math.floor(Math.random() * 3),
+        }))
+      )
+    }
+  }, [isMobile])
 
   useEffect(() => {
     const timeouts = []
@@ -78,8 +103,10 @@ export default function SplashScreen({ onComplete }) {
       setStage(3) // Drone começa a entrar
       
       let pos = 0
+      // Velocidade do drone baseada no mobile
+      const droneSpeed = isMobile ? 0.3 : 0.6 // Ainda mais lento no mobile
       const droneInterval = setInterval(() => {
-        pos += 0.6  // Reduzido de 1.2 para 0.6 - drone mais devagar
+        pos += droneSpeed
         if (pos <= 100) {
           setDronePos(pos)
         } else {
@@ -89,12 +116,14 @@ export default function SplashScreen({ onComplete }) {
       }, 25)
       
       timeouts.push({ cleanup: () => clearInterval(droneInterval) })
-    }, 5500) // Tempo generoso para ver as plantas crescerem
+    }, 5500)
     
     setSafeTimeout(() => {
       let progressValue = 0
+      // Progresso mais lento no mobile
+      const progressSpeed = isMobile ? 0.6 : 0.9
       const progressInterval = setInterval(() => {
-        progressValue += 0.9  // Reduzido de 1.1 para 0.9 - progresso mais lento
+        progressValue += progressSpeed
         
         if (progressValue < 20) setLoadingMessage("INICIANDO SCAN...")
         else if (progressValue < 40) setLoadingMessage("MAPEANDO TERRENO...")
@@ -121,7 +150,7 @@ export default function SplashScreen({ onComplete }) {
         else clearTimeout(t)
       })
     }
-  }, [onComplete])
+  }, [onComplete, isMobile])
 
   // Animação do drone (mantida igual)
   const getDroneStyle = () => {
@@ -152,6 +181,11 @@ export default function SplashScreen({ onComplete }) {
   }
 
   const droneStyle = getDroneStyle()
+
+  // Não renderizar nada até ter os dados das plantas
+  if (plantData.length === 0) {
+    return <div className="splash" style={{ background: '#0a2a0a' }}></div>
+  }
 
   return (
     <div className="splash">
